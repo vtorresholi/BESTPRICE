@@ -19,10 +19,8 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 JSON_PATH = BASE_DIR / "data" / "data.json"
 QR_DIR = BASE_DIR / "qr_codes"
 
-# TODO(TI): reemplazar por la URL final donde quede publicada comparativa.html
-# Modo PRUEBA LOCAL: apunta a la IP de la red WiFi para escanear desde el celular
-# mientras se define el hosting definitivo.
-BASE_URL = "http://192.168.0.26:8743/comparativa.html"
+# URL definitiva (Railway).
+BASE_URL = "https://bestprice-production-15ee.up.railway.app/comparativa.html"
 
 
 def main():
