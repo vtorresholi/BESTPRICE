@@ -15,6 +15,7 @@ que ya usa el equipo de tienda via el QR impreso.
 import io
 import os
 import re
+import zipfile
 from datetime import datetime
 from pathlib import Path
 from urllib.parse import quote
@@ -155,7 +156,7 @@ def parsear_excel(contenido: bytes):
             "sku": str(sku).strip(),
             "nombre": str(val("Producto")).strip(),
             "marca": str(val("Marca") or "").strip(),
-            "imagen": "",
+            "imagen": str(val("Imagen URL") or "").strip(),
             "precio_holi": round(float(val("Precio Holi")), 2),
             "competidores": competidores,
         })
@@ -167,11 +168,14 @@ def parsear_excel(contenido: bytes):
 
 
 def fusionar_imagenes(productos_nuevos, data_anterior):
-    """Conserva la foto ya subida de cada producto al reemplazar los datos con
-    un Excel nuevo, para que Pricing no la vuelva a subir cada semana."""
+    """Conserva la foto ya subida (o URL) de cada producto al reemplazar los
+    datos con un Excel nuevo, para que Pricing no la vuelva a subir/pegar cada
+    semana. Si el Excel nuevo trae una "Imagen URL" para ese SKU, esa gana."""
     anteriores_por_sku = {p["sku"]: p for p in data_anterior.get("productos", [])}
 
     for producto in productos_nuevos:
+        if producto.get("imagen"):
+            continue  # el Excel nuevo ya trae una URL para este producto
         anterior = anteriores_por_sku.get(producto["sku"])
         if anterior and anterior.get("imagen"):
             producto["imagen"] = anterior["imagen"]
@@ -228,6 +232,54 @@ async def admin_subir_imagen_producto(
     guardar_data(data)
     msg = quote(f"Imagen de producto actualizada para SKU {sku}.")
     return RedirectResponse(f"/admin?msg={msg}", status_code=303)
+
+
+@app.post("/admin/imagenes-zip")
+async def admin_subir_imagenes_zip(
+    request: Request, archivo: UploadFile = File(...), _=Depends(require_login)
+):
+    """Carga masiva: un .zip con una foto por producto, nombrada como el SKU
+    (ej. 1001.jpg, 700000000137.png). Evita subir imagen por imagen."""
+    data = cargar_data()
+    productos_por_sku = {p["sku"]: p for p in data["productos"]}
+
+    try:
+        contenido = await archivo.read()
+        zf = zipfile.ZipFile(io.BytesIO(contenido))
+    except zipfile.BadZipFile:
+        return RedirectResponse(f"/admin?error={quote('El archivo no es un .zip válido.')}", status_code=303)
+
+    actualizados = []
+    sin_coincidencia = []
+
+    for info in zf.infolist():
+        nombre = Path(info.filename).name  # evita rutas ("../", subcarpetas)
+        if not nombre or info.is_dir() or nombre.startswith(".") or nombre.startswith("__MACOSX"):
+            continue
+
+        extension = Path(nombre).suffix.lower()
+        if extension not in (".jpg", ".jpeg", ".png", ".webp"):
+            continue
+
+        sku = Path(nombre).stem.strip()
+        producto = productos_por_sku.get(sku)
+        if not producto:
+            sin_coincidencia.append(nombre)
+            continue
+
+        nombre_archivo = f"{sku}__producto{extension}"
+        (IMAGES_DIR / nombre_archivo).write_bytes(zf.read(info))
+        producto["imagen"] = f"images/{nombre_archivo}"
+        actualizados.append(sku)
+
+    guardar_data(data)
+
+    resumen = f"Fotos cargadas: {len(actualizados)} producto(s) actualizados."
+    if sin_coincidencia:
+        resumen += f" {len(sin_coincidencia)} archivo(s) sin SKU coincidente: {', '.join(sin_coincidencia[:8])}"
+        if len(sin_coincidencia) > 8:
+            resumen += "…"
+    return RedirectResponse(f"/admin?msg={quote(resumen)}", status_code=303)
 
 
 @app.post("/admin/logo")

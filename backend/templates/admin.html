@@ -73,6 +73,7 @@
         <input type="file" name="archivo" accept=".xlsx" required>
         <button type="submit">Subir Excel</button>
       </form>
+      <p class="hint" style="margin-top:10px;margin-bottom:0;">Tip: si ya tienes las fotos en una URL (catálogo, Drive público, etc.), agrega una columna <strong>"Imagen URL"</strong> al Excel y se usan automáticamente, sin subir nada más abajo.</p>
     </div>
 
     <div class="panel">
@@ -90,6 +91,15 @@
     <div class="panel">
       <h2>3. Foto de cada producto</h2>
       <p class="hint">Sube una sola foto por producto (se usa para representarlo en toda la comparativa, no hace falta una foto distinta por competidor). Se actualiza al instante en la página que ve el cliente.</p>
+
+      <p class="hint" style="font-weight:700;margin-bottom:6px;">Carga masiva (recomendado para muchos productos)</p>
+      <p class="hint">Sube un archivo .zip con una foto por producto, nombrada exactamente como el SKU (ej. <code>1001.jpg</code>, <code>700000000137.png</code>). El sistema las reparte automáticamente, sin subir una por una.</p>
+      <form class="inline" action="/admin/imagenes-zip" method="post" enctype="multipart/form-data" style="margin-bottom:18px;">
+        <input type="file" name="archivo" accept=".zip" required>
+        <button type="submit">Subir ZIP de fotos</button>
+      </form>
+
+      <p class="hint" style="font-weight:700;margin-bottom:6px;">O una por una</p>
       <table>
         <thead>
           <tr><th>Producto</th><th>Foto</th><th>Subir</th><th>Comparado con</th></tr>
@@ -99,7 +109,7 @@
           <tr class="producto-row">
             <td>{{ producto.nombre }}<br><span class="sku-tag">SKU {{ producto.sku }}</span></td>
             <td>
-              {% if producto.imagen %}<img class="thumb" src="/{{ producto.imagen }}" alt="">{% else %}<span class="sku-tag">sin foto</span>{% endif %}
+              {% if producto.imagen %}<img class="thumb" src="{{ producto.imagen if producto.imagen.startswith('http') else '/' + producto.imagen }}" alt="">{% else %}<span class="sku-tag">sin foto</span>{% endif %}
             </td>
             <td>
               <form class="inline" action="/admin/imagen-producto" method="post" enctype="multipart/form-data">

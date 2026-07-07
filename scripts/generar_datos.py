@@ -82,7 +82,7 @@ def leer_excel():
             "sku": str(sku).strip(),
             "nombre": str(val("Producto")).strip(),
             "marca": str(val("Marca") or "").strip(),
-            "imagen": "",
+            "imagen": str(val("Imagen URL") or "").strip(),
             "precio_holi": round(float(val("Precio Holi")), 2),
             "competidores": competidores,
         })
@@ -95,10 +95,13 @@ def leer_excel():
 
 
 def fusionar_imagenes(productos_nuevos, data_anterior):
-    """Conserva la foto ya subida de cada producto al reemplazar los datos
-    con un Excel nuevo, para que Pricing no la vuelva a subir cada semana."""
+    """Conserva la foto ya subida (o URL) de cada producto al reemplazar los
+    datos con un Excel nuevo. Si el Excel nuevo trae una "Imagen URL" para
+    ese SKU, esa gana."""
     anteriores_por_sku = {p["sku"]: p for p in data_anterior.get("productos", [])}
     for producto in productos_nuevos:
+        if producto.get("imagen"):
+            continue
         anterior = anteriores_por_sku.get(producto["sku"])
         if anterior and anterior.get("imagen"):
             producto["imagen"] = anterior["imagen"]
