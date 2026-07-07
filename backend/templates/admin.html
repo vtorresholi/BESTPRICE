@@ -88,16 +88,16 @@
     </div>
 
     <div class="panel">
-      <h2>3. Fotos de productos y competidores</h2>
-      <p class="hint">Sube la foto de cada producto y de cada competidor. Se actualiza al instante en la página que ve el cliente.</p>
+      <h2>3. Foto de cada producto</h2>
+      <p class="hint">Sube una sola foto por producto (se usa para representarlo en toda la comparativa, no hace falta una foto distinta por competidor). Se actualiza al instante en la página que ve el cliente.</p>
       <table>
         <thead>
-          <tr><th>Producto</th><th>Foto</th><th>Subir</th></tr>
+          <tr><th>Producto</th><th>Foto</th><th>Subir</th><th>Comparado con</th></tr>
         </thead>
         <tbody>
           {% for producto in data.productos %}
           <tr class="producto-row">
-            <td>{{ producto.nombre }}<br><span class="sku-tag">SKU {{ producto.sku }} · Mi producto</span></td>
+            <td>{{ producto.nombre }}<br><span class="sku-tag">SKU {{ producto.sku }}</span></td>
             <td>
               {% if producto.imagen %}<img class="thumb" src="/{{ producto.imagen }}" alt="">{% else %}<span class="sku-tag">sin foto</span>{% endif %}
             </td>
@@ -108,25 +108,10 @@
                 <button type="submit">Subir</button>
               </form>
             </td>
+            <td><span class="sku-tag">{{ producto.competidores | map(attribute='tienda') | join(', ') }}</span></td>
           </tr>
-          {% for competidor in producto.competidores %}
-          <tr>
-            <td style="padding-left:20px;">{{ competidor.tienda }}<br><span class="sku-tag">{{ competidor.producto }}</span></td>
-            <td>
-              {% if competidor.imagen %}<img class="thumb" src="/{{ competidor.imagen }}" alt="">{% else %}<span class="sku-tag">sin foto</span>{% endif %}
-            </td>
-            <td>
-              <form class="inline" action="/admin/imagen-competidor" method="post" enctype="multipart/form-data">
-                <input type="hidden" name="sku" value="{{ producto.sku }}">
-                <input type="hidden" name="indice" value="{{ loop.index0 }}">
-                <input type="file" name="archivo" accept="image/*" required>
-                <button type="submit">Subir</button>
-              </form>
-            </td>
-          </tr>
-          {% endfor %}
           {% else %}
-          <tr><td colspan="3">Todavía no hay productos cargados. Sube un Excel primero.</td></tr>
+          <tr><td colspan="4">Todavía no hay productos cargados. Sube un Excel primero.</td></tr>
           {% endfor %}
         </tbody>
       </table>

@@ -32,11 +32,7 @@ def detectar_columnas_competidor(encabezados):
     numeros = sorted(
         int(m.group(1)) for h in encabezados if (m := RE_TIENDA.match(h))
     )
-    return [
-        (f"Tienda {n}", f"Producto Competidor {n}", f"Precio Competidor {n}",
-         f"Imagen Competidor {n}", f"Fecha Competidor {n}")
-        for n in numeros
-    ]
+    return [(f"Tienda {n}", f"Precio Competidor {n}") for n in numeros]
 
 
 def fmt_fecha(valor):
@@ -55,15 +51,13 @@ def leer_excel():
     encabezados = [str(c.value).strip() if c.value else "" for c in hoja[1]]
     col_idx = {nombre: i for i, nombre in enumerate(encabezados)}
 
-    requeridas = ["SKU", "Producto", "Marca", "Precio Holi", "Fecha Comparativa"]
+    requeridas = ["SKU", "Producto", "Marca", "Precio Holi"]
     faltantes = [c for c in requeridas if c not in col_idx]
     if faltantes:
         raise ValueError(f"Faltan columnas obligatorias en el Excel: {faltantes}")
 
     columnas_competidor = detectar_columnas_competidor(encabezados)
-
     productos = []
-    fecha_comparativa_general = None
 
     for fila in hoja.iter_rows(min_row=2, values_only=False):
         def val(nombre_col):
@@ -74,35 +68,41 @@ def leer_excel():
         if sku is None or str(sku).strip() == "":
             continue
 
-        fecha_fila = fmt_fecha(val("Fecha Comparativa"))
-        if fecha_fila:
-            fecha_comparativa_general = fecha_fila
-
         competidores = []
-        for col_tienda, col_producto, col_precio, col_imagen, col_fecha in columnas_competidor:
+        for col_tienda, col_precio in columnas_competidor:
             tienda = val(col_tienda)
             precio_comp = val(col_precio)
             if tienda and precio_comp not in (None, ""):
                 competidores.append({
                     "tienda": str(tienda).strip(),
-                    "producto": str(val(col_producto) or "").strip(),
                     "precio": round(float(precio_comp), 2),
-                    "imagen": str(val(col_imagen) or "").strip(),
-                    "fecha": fmt_fecha(val(col_fecha)) or fecha_fila,
                 })
 
         productos.append({
             "sku": str(sku).strip(),
             "nombre": str(val("Producto")).strip(),
             "marca": str(val("Marca") or "").strip(),
-            "imagen": str(val("Imagen Producto") or "").strip(),
+            "imagen": "",
             "precio_holi": round(float(val("Precio Holi")), 2),
             "competidores": competidores,
         })
 
-    fecha_comparativa_general = fecha_comparativa_general or fmt_fecha(datetime.now())
+    # La fecha de la comparativa siempre es la fecha en que se genera el
+    # archivo, no algo que Pricing tenga que llenar en el Excel.
+    fecha_comparativa_general = fmt_fecha(datetime.now())
 
     return fecha_comparativa_general, productos
+
+
+def fusionar_imagenes(productos_nuevos, data_anterior):
+    """Conserva la foto ya subida de cada producto al reemplazar los datos
+    con un Excel nuevo, para que Pricing no la vuelva a subir cada semana."""
+    anteriores_por_sku = {p["sku"]: p for p in data_anterior.get("productos", [])}
+    for producto in productos_nuevos:
+        anterior = anteriores_por_sku.get(producto["sku"])
+        if anterior and anterior.get("imagen"):
+            producto["imagen"] = anterior["imagen"]
+    return productos_nuevos
 
 
 def main():
@@ -113,6 +113,11 @@ def main():
         )
 
     fecha_comparativa, productos = leer_excel()
+
+    data_anterior = {}
+    if JSON_PATH.exists():
+        data_anterior = json.loads(JSON_PATH.read_text(encoding="utf-8"))
+    productos = fusionar_imagenes(productos, data_anterior)
 
     data = {
         "fecha_comparativa": fecha_comparativa,

@@ -3,8 +3,10 @@ Backend administrativo para Best Price (Holi).
 
 Permite al equipo de Pricing, sin tocar codigo:
 - Subir el Excel semanal con SKU, Producto, Marca, Precio Holi y hasta
-  varios competidores (tienda + precio).
-- Subir la foto de cada producto y de cada competidor.
+  varios competidores (tienda + precio). La fecha de la comparativa se toma
+  automaticamente del momento en que se sube el Excel.
+- Subir la foto de cada producto (una sola, se usa para representar ese
+  producto en toda la comparativa).
 - Reemplazar el logo de Holi.
 
 El resultado (static/data/data.json) alimenta directamente comparativa.html,
@@ -112,11 +114,7 @@ def fmt_fecha(valor):
 
 def detectar_columnas_competidor(encabezados):
     numeros = sorted(int(m.group(1)) for h in encabezados if (m := RE_TIENDA.match(h)))
-    return [
-        (f"Tienda {n}", f"Producto Competidor {n}", f"Precio Competidor {n}",
-         f"Imagen Competidor {n}", f"Fecha Competidor {n}")
-        for n in numeros
-    ]
+    return [(f"Tienda {n}", f"Precio Competidor {n}") for n in numeros]
 
 
 def parsear_excel(contenido: bytes):
@@ -133,7 +131,6 @@ def parsear_excel(contenido: bytes):
 
     columnas_competidor = detectar_columnas_competidor(encabezados)
     productos = []
-    fecha_general = None
 
     for fila in hoja.iter_rows(min_row=2, values_only=False):
         def val(nombre_col):
@@ -144,21 +141,14 @@ def parsear_excel(contenido: bytes):
         if sku is None or str(sku).strip() == "":
             continue
 
-        fecha_fila = fmt_fecha(val("Fecha Comparativa")) if "Fecha Comparativa" in col_idx else None
-        if fecha_fila:
-            fecha_general = fecha_fila
-
         competidores = []
-        for col_tienda, col_producto, col_precio, col_imagen, col_fecha in columnas_competidor:
+        for col_tienda, col_precio in columnas_competidor:
             tienda = val(col_tienda)
             precio_comp = val(col_precio)
             if tienda and precio_comp not in (None, ""):
                 competidores.append({
                     "tienda": str(tienda).strip(),
-                    "producto": str(val(col_producto) or "").strip(),
                     "precio": round(float(precio_comp), 2),
-                    "imagen": str(val(col_imagen) or "").strip(),
-                    "fecha": fmt_fecha(val(col_fecha)) or fecha_fila,
                 })
 
         productos.append({
@@ -170,29 +160,21 @@ def parsear_excel(contenido: bytes):
             "competidores": competidores,
         })
 
-    fecha_general = fecha_general or fmt_fecha(datetime.now())
+    # La fecha de la comparativa siempre es la fecha en que se sube el Excel,
+    # no algo que Pricing tenga que llenar.
+    fecha_general = fmt_fecha(datetime.now())
     return fecha_general, productos
 
 
 def fusionar_imagenes(productos_nuevos, data_anterior):
-    """Conserva las imagenes ya subidas (producto y competidores) al reemplazar
-    los datos con un Excel nuevo, para que Pricing no pierda fotos cada semana."""
+    """Conserva la foto ya subida de cada producto al reemplazar los datos con
+    un Excel nuevo, para que Pricing no la vuelva a subir cada semana."""
     anteriores_por_sku = {p["sku"]: p for p in data_anterior.get("productos", [])}
 
     for producto in productos_nuevos:
         anterior = anteriores_por_sku.get(producto["sku"])
-        if not anterior:
-            continue
-        if anterior.get("imagen"):
+        if anterior and anterior.get("imagen"):
             producto["imagen"] = anterior["imagen"]
-
-        anteriores_comp_por_tienda = {
-            c["tienda"]: c for c in anterior.get("competidores", [])
-        }
-        for comp in producto["competidores"]:
-            comp_anterior = anteriores_comp_por_tienda.get(comp["tienda"])
-            if comp_anterior and comp_anterior.get("imagen"):
-                comp["imagen"] = comp_anterior["imagen"]
 
     return productos_nuevos
 
@@ -245,31 +227,6 @@ async def admin_subir_imagen_producto(
     producto["imagen"] = f"images/{nombre_archivo}"
     guardar_data(data)
     msg = quote(f"Imagen de producto actualizada para SKU {sku}.")
-    return RedirectResponse(f"/admin?msg={msg}", status_code=303)
-
-
-@app.post("/admin/imagen-competidor")
-async def admin_subir_imagen_competidor(
-    request: Request,
-    sku: str = Form(...),
-    indice: int = Form(...),
-    archivo: UploadFile = File(...),
-    _=Depends(require_login),
-):
-    data = cargar_data()
-    producto = next((p for p in data["productos"] if p["sku"] == sku), None)
-    if not producto or indice >= len(producto["competidores"]):
-        return RedirectResponse("/admin?error=Producto o competidor no encontrado", status_code=303)
-
-    competidor = producto["competidores"][indice]
-    extension = Path(archivo.filename).suffix or ".jpg"
-    nombre_archivo = f"{sku}__comp{indice}{extension}"
-    destino = IMAGES_DIR / nombre_archivo
-    destino.write_bytes(await archivo.read())
-
-    competidor["imagen"] = f"images/{nombre_archivo}"
-    guardar_data(data)
-    msg = quote(f"Imagen de {competidor['tienda']} actualizada para SKU {sku}.")
     return RedirectResponse(f"/admin?msg={msg}", status_code=303)
 
 

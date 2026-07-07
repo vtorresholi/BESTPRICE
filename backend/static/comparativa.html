@@ -354,8 +354,8 @@
             <div class="tarjeta-competidor">
               <div class="logo-slot">${badgeTienda(c.tienda)}</div>
               <div class="comp-body">
-                <p class="comp-producto">${c.producto || producto.nombre}</p>
-                <div class="comp-fecha">Actualización: ${c.fecha || datos.fecha_comparativa || ''}</div>
+                <p class="comp-producto">${producto.nombre}</p>
+                <div class="comp-fecha">Actualización: ${datos.fecha_comparativa || ''}</div>
                 <div class="comp-precio">S/. ${fmtMonto(c.precio)}</div>
                 <span class="pill-diff ${pillClase}">${pillTexto}</span>
               </div>
