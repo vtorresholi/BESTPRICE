@@ -128,6 +128,12 @@
     </div>
 
     <div class="panel">
+      <h2>4. Códigos QR</h2>
+      <p class="hint">Descarga un .zip con un QR por cada producto cargado (nombrado por SKU), listo para mandar a imprenta. Cada QR ya apunta a esta misma página, así que no hace falta reimprimirlos si solo cambian los precios.</p>
+      <a class="btn" href="/admin/qr.zip">Descargar todos los QR (.zip)</a>
+    </div>
+
+    <div class="panel">
       <h2>Vista previa</h2>
       <p class="hint">Así se ve la página que abre el cliente al escanear el QR.</p>
       {% for producto in data.productos %}

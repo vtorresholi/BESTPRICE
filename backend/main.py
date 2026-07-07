@@ -21,8 +21,9 @@ from pathlib import Path
 from urllib.parse import quote
 
 import openpyxl
+import qrcode
 from fastapi import FastAPI, Request, UploadFile, File, Form, Depends
-from fastapi.responses import RedirectResponse, HTMLResponse
+from fastapi.responses import RedirectResponse, HTMLResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from starlette.middleware.sessions import SessionMiddleware
@@ -287,6 +288,31 @@ async def admin_subir_logo(request: Request, archivo: UploadFile = File(...), _=
     destino = LOGOS_DIR / "holi-logo.png"
     destino.write_bytes(await archivo.read())
     return RedirectResponse(f"/admin?msg={quote('Logo de Holi actualizado.')}", status_code=303)
+
+
+@app.get("/admin/qr.zip")
+def admin_descargar_qr(request: Request, _=Depends(require_login)):
+    """Genera un QR por cada producto (apuntando a este mismo sitio) y los
+    entrega todos juntos en un .zip, listo para mandar a imprenta."""
+    data = cargar_data()
+    base_url = str(request.base_url).rstrip("/")
+
+    buffer = io.BytesIO()
+    with zipfile.ZipFile(buffer, "w", zipfile.ZIP_DEFLATED) as zf:
+        for producto in data.get("productos", []):
+            sku = producto["sku"]
+            url = f"{base_url}/comparativa.html?sku={sku}"
+            img = qrcode.make(url)
+            img_buffer = io.BytesIO()
+            img.save(img_buffer, format="PNG")
+            zf.writestr(f"{sku}.png", img_buffer.getvalue())
+    buffer.seek(0)
+
+    return StreamingResponse(
+        buffer,
+        media_type="application/zip",
+        headers={"Content-Disposition": "attachment; filename=qr_codes.zip"},
+    )
 
 
 # ---------------------------------------------------------------------------
