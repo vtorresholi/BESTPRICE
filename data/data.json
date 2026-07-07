@@ -1,0 +1,72 @@
+{
+  "fecha_comparativa": "Julio 13, 2026",
+  "productos": [
+    {
+      "sku": "721733005901",
+      "nombre": "TEQUILA PATRON ANEJO 700ML",
+      "marca": "PATRON",
+      "imagen": "",
+      "precio_holi": 359.9,
+      "competidores": [
+        {
+          "tienda": "Tottus",
+          "producto": "Tequila Patrón Añejo Botella 750 mL",
+          "precio": 299.9,
+          "imagen": "",
+          "fecha": "Julio 6, 2026"
+        },
+        {
+          "tienda": "Plaza Vea",
+          "producto": "Tequila PATRON Añejo Botella 700ml",
+          "precio": 299.9,
+          "imagen": "",
+          "fecha": "Julio 6, 2026"
+        },
+        {
+          "tienda": "Wong",
+          "producto": "Tequila Patrón Añejo Botella 750 mL",
+          "precio": 349.9,
+          "imagen": "",
+          "fecha": "Julio 6, 2026"
+        }
+      ]
+    },
+    {
+      "sku": "1001",
+      "nombre": "Yogurt Vakimu Natural 1 kg",
+      "marca": "Vakimu",
+      "imagen": "",
+      "precio_holi": 13.9,
+      "competidores": [
+        {
+          "tienda": "Plaza Vea",
+          "producto": "Yogurt Vakimu Natural 1 kg",
+          "precio": 16.5,
+          "imagen": "",
+          "fecha": "Julio 13, 2026"
+        },
+        {
+          "tienda": "Tottus",
+          "producto": "Yogurt Vakimu Natural 1 kg",
+          "precio": 15.9,
+          "imagen": "",
+          "fecha": "Julio 13, 2026"
+        },
+        {
+          "tienda": "Metro",
+          "producto": "Yogurt Vakimu Natural 1 kg",
+          "precio": 16.2,
+          "imagen": "",
+          "fecha": "Julio 13, 2026"
+        },
+        {
+          "tienda": "Wong",
+          "producto": "Yogurt Vakimu Natural 1 kg",
+          "precio": 15.5,
+          "imagen": "",
+          "fecha": "Julio 13, 2026"
+        }
+      ]
+    }
+  ]
+}

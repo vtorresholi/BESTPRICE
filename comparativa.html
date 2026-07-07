@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Best Price | Holi</title>
+<style>
+  :root {
+    --verde-holi: #6ABF4B;
+    --naranja-holi: #FF8300;
+    --magenta: #C2185B;
+    --naranja-impacto: #FF7A00;
+    --amarillo-impacto: #FFD300;
+    --texto: #1F1F1F;
+    --gris: #666666;
+    --gris-claro: #f2f2f2;
+    --bien: #2E7D32;
+    --mal: #C2185B;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: 'Segoe UI', Arial, sans-serif;
+    background: #FBF5F7;
+    color: var(--texto);
+    padding: 16px;
+  }
+  .card {
+    background: #fff;
+    max-width: 1000px;
+    margin: 0 auto;
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+  }
+  .accent-bar {
+    height: 6px;
+    background: linear-gradient(90deg, var(--magenta) 0%, var(--naranja-impacto) 55%, var(--amarillo-impacto) 100%);
+  }
+  .header {
+    padding: 16px 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: var(--magenta);
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .logo-holi-wrap {
+    background: #fff;
+    border-radius: 10px;
+    padding: 4px 10px;
+    display: inline-flex;
+    align-items: center;
+  }
+  .logo-holi {
+    font-weight: 800;
+    font-size: 24px;
+    letter-spacing: 1px;
+  }
+  .logo-holi .h1, .logo-holi .h2 { color: var(--verde-holi); }
+  .logo-holi .o { color: var(--naranja-holi); }
+  .logo-holi-img { height: 36px; display: block; }
+  .badge {
+    background: #fff;
+    color: var(--magenta);
+    font-weight: 800;
+    font-size: 13px;
+    padding: 5px 12px;
+    border-radius: 999px;
+    white-space: nowrap;
+    box-shadow: 0 2px 0 0 var(--amarillo-impacto);
+  }
+  .body { padding: 20px 24px 24px; }
+  .estado {
+    text-align: center;
+    padding: 40px 20px;
+    font-size: 15px;
+    color: var(--gris);
+  }
+  .fecha-top {
+    font-size: 12px;
+    color: var(--gris);
+    margin-bottom: 16px;
+  }
+  .columnas {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+  }
+  @media (min-width: 700px) {
+    .columnas { flex-direction: row; align-items: flex-start; }
+    .col-mi-producto { width: 300px; flex-shrink: 0; }
+    .col-comparado { flex: 1; min-width: 0; }
+  }
+  .titulo-col {
+    font-size: 16px;
+    font-weight: 700;
+    margin: 0 0 14px;
+  }
+  .placeholder-img {
+    width: 100%;
+    max-width: 260px;
+    aspect-ratio: 1 / 1;
+    border-radius: 12px;
+    background: var(--gris-claro);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  .placeholder-img svg { width: 64px; height: 64px; color: #bbb; }
+  .mi-producto-box { display: flex; flex-direction: column; align-items: center; gap: 16px; min-width: 0; }
+  .mi-producto-datos { max-width: 100%; }
+  .mi-producto-datos dl {
+    margin: 0;
+    display: inline-grid;
+    grid-template-columns: auto auto;
+    column-gap: 10px;
+    row-gap: 8px;
+    font-size: 14px;
+  }
+  .mi-producto-datos dt { font-weight: 700; white-space: nowrap; }
+  .mi-producto-datos dd { margin: 0; color: var(--texto); overflow-wrap: anywhere; }
+  .mi-producto-datos .precio-venta {
+    font-size: 18px;
+    font-weight: 800;
+    color: var(--magenta);
+    display: inline-block;
+    border-bottom: 3px solid var(--amarillo-impacto);
+    padding-bottom: 2px;
+  }
+  @media (max-width: 420px) {
+    .mi-producto-datos dl { grid-template-columns: 1fr; row-gap: 2px; }
+    .mi-producto-datos dt { margin-top: 8px; }
+    .mi-producto-datos dt:first-child { margin-top: 0; }
+  }
+
+  .fila-competidores {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .tarjeta-competidor {
+    background: #fff;
+    border: 1px solid #eee;
+    border-radius: 12px;
+    padding: 12px 14px;
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+  }
+  .tarjeta-competidor .logo-slot {
+    width: 70px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    padding-top: 2px;
+  }
+  .tarjeta-competidor .placeholder-img {
+    width: 36px;
+    height: 36px;
+  }
+  .logo-tienda-img {
+    height: 20px;
+    max-width: 68px;
+    object-fit: contain;
+  }
+  .tienda-badge {
+    font-size: 11px;
+    font-weight: 800;
+    padding: 3px 8px;
+    border-radius: 6px;
+    color: #fff;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .comp-body {
+    flex: 1;
+    min-width: 0;
+    display: grid;
+    grid-template-columns: 1fr;
+    grid-template-areas:
+      "producto"
+      "fecha"
+      "precio"
+      "pill";
+    gap: 4px;
+  }
+  @media (min-width: 480px) {
+    .fila-competidores { align-items: flex-start; }
+    .tarjeta-competidor { width: auto; }
+    .comp-body {
+      flex: 0 1 auto;
+      grid-template-columns: 190px 80px minmax(150px, auto);
+      grid-template-areas:
+        "producto producto producto"
+        "fecha    precio    pill";
+      column-gap: 14px;
+      row-gap: 4px;
+      align-items: center;
+    }
+  }
+  .comp-producto {
+    grid-area: producto;
+    font-size: 13px;
+    font-weight: 600;
+    margin: 0;
+    line-height: 1.3;
+  }
+  .comp-fecha { grid-area: fecha; font-size: 11px; color: var(--gris); font-style: italic; }
+  .comp-precio {
+    grid-area: precio;
+    font-size: 16px;
+    font-weight: 800;
+    white-space: nowrap;
+  }
+  .pill-diff {
+    grid-area: pill;
+    justify-self: start;
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 4px 8px;
+    border-radius: 999px;
+    white-space: normal;
+  }
+  @media (min-width: 480px) {
+    .comp-fecha { align-self: center; }
+    .comp-precio { text-align: right; align-self: center; }
+    .pill-diff { justify-self: start; align-self: center; text-align: left; }
+  }
+  .pill-diff.bien { background: #E4F3E6; color: var(--bien); }
+  .pill-diff.mal { background: #FBE4EC; color: var(--mal); }
+  .pill-diff.neutro { background: var(--gris-claro); color: var(--gris); }
+
+  .disclaimer {
+    font-size: 11px;
+    color: #888;
+    line-height: 1.5;
+    border-top: 1px solid #eee;
+    padding-top: 14px;
+    margin-top: 20px;
+  }
+  .footer {
+    text-align: center;
+    padding: 12px;
+    font-size: 12px;
+    color: #999;
+  }
+</style>
+</head>
+<body>
+  <div class="card">
+    <div class="accent-bar"></div>
+    <div class="header">
+      <span class="logo-holi-wrap">
+        <img src="logos/holi-logo.png" alt="Holi" class="logo-holi-img" onerror="this.style.display='none';this.nextElementSibling.style.display='inline';">
+        <span class="logo-holi" style="display:none;"><span class="h1">H</span><span class="o">O</span><span class="h2">LI</span></span>
+      </span>
+      <span class="badge">✓ BEST PRICE</span>
+    </div>
+    <div class="body" id="contenido">
+      <div class="estado">Cargando comparativa…</div>
+    </div>
+  </div>
+
+  <div class="footer">HOLI · Mejor precio, siempre</div>
+
+  <script>
+    const ICONO_PLACEHOLDER = `
+      <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <rect x="3" y="3" width="18" height="18" rx="2" stroke="currentColor" stroke-width="1.5"/>
+        <circle cx="8.5" cy="8.5" r="1.5" fill="currentColor"/>
+        <path d="M21 15l-5-5L5 21" stroke="currentColor" stroke-width="1.5"/>
+      </svg>`;
+
+    const COLOR_TIENDA = {
+      'tottus': '#00A65A',
+      'plaza vea': '#EE2A24',
+      'metro': '#0033A0',
+      'wong': '#8C1D40',
+      'vivanda': '#7A1F2B',
+    };
+
+    // Logos reales de cada tienda (carpeta /logos). Si el archivo no existe
+    // todavia, el onerror del <img> hace fallback automatico al badge de texto.
+    const LOGO_TIENDA = {
+      'tottus': 'logos/tottus.png',
+      'plaza vea': 'logos/plaza-vea.png',
+      'metro': 'logos/metro.png',
+      'wong': 'logos/wong.png',
+    };
+
+    function colorTienda(nombre) {
+      return COLOR_TIENDA[(nombre || '').trim().toLowerCase()] || '#555555';
+    }
+
+    function badgeTienda(nombre) {
+      const key = (nombre || '').trim().toLowerCase();
+      const logo = LOGO_TIENDA[key];
+      const badgeHtml = `<span class="tienda-badge" style="background:${colorTienda(nombre)};${logo ? 'display:none;' : ''}">${nombre}</span>`;
+      if (!logo) return badgeHtml;
+      return `<img src="${logo}" alt="${nombre}" class="logo-tienda-img" onerror="this.style.display='none';this.nextElementSibling.style.display='inline-block';">${badgeHtml}`;
+    }
+
+    function fmtMonto(n) {
+      return parseFloat(Number(n).toFixed(2)).toString();
+    }
+
+    function imagenOPlaceholder(url) {
+      if (url) {
+        return `<img src="${url}" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:10px;">`;
+      }
+      return ICONO_PLACEHOLDER;
+    }
+
+    async function cargarComparativa() {
+      const params = new URLSearchParams(window.location.search);
+      const sku = params.get('sku');
+      const contenido = document.getElementById('contenido');
+
+      if (!sku) {
+        contenido.innerHTML = '<div class="estado">No se especificó un producto para comparar.</div>';
+        return;
+      }
+
+      try {
+        const resp = await fetch('data/data.json', { cache: 'no-store' });
+        const datos = await resp.json();
+        const producto = datos.productos.find(p => p.sku === sku);
+
+        if (!producto) {
+          contenido.innerHTML = '<div class="estado">No encontramos la comparativa para este producto.</div>';
+          return;
+        }
+
+        const competidores = producto.competidores || [];
+
+        const tarjetas = competidores.map(c => {
+          const diff = producto.precio_holi - c.precio; // positivo = Holi mas caro
+          const pct = c.precio ? Math.abs(diff) / c.precio * 100 : 0;
+          let pillClase = 'neutro';
+          let pillTexto = 'mismo precio';
+          if (diff > 0.001) {
+            pillClase = 'mal';
+            pillTexto = `S/. ${fmtMonto(Math.abs(diff))} (${pct.toFixed(2)}%) por encima`;
+          } else if (diff < -0.001) {
+            pillClase = 'bien';
+            pillTexto = `S/. ${fmtMonto(Math.abs(diff))} (${pct.toFixed(2)}%) por debajo`;
+          }
+
+          return `
+            <div class="tarjeta-competidor">
+              <div class="logo-slot">${badgeTienda(c.tienda)}</div>
+              <div class="comp-body">
+                <p class="comp-producto">${c.producto || producto.nombre}</p>
+                <div class="comp-fecha">Actualización: ${c.fecha || datos.fecha_comparativa || ''}</div>
+                <div class="comp-precio">S/. ${fmtMonto(c.precio)}</div>
+                <span class="pill-diff ${pillClase}">${pillTexto}</span>
+              </div>
+            </div>
+          `;
+        }).join('');
+
+        contenido.innerHTML = `
+          <div class="columnas">
+            <div class="col-mi-producto">
+              <p class="titulo-col">Mi producto</p>
+              <div class="mi-producto-box">
+                <div class="placeholder-img">${imagenOPlaceholder(producto.imagen)}</div>
+                <div class="mi-producto-datos">
+                  <dl>
+                    <dt>SKU:</dt><dd>${producto.sku}</dd>
+                    <dt>Producto:</dt><dd>${producto.nombre}</dd>
+                    <dt>Marca:</dt><dd>${producto.marca || ''}</dd>
+                    <dt>Precio venta</dt><dd class="precio-venta">S/. ${fmtMonto(producto.precio_holi)}</dd>
+                  </dl>
+                </div>
+              </div>
+            </div>
+            <div class="col-comparado">
+              <p class="titulo-col">Comparado con:</p>
+              <div class="fila-competidores">
+                ${tarjetas || '<p style="color:#999;font-size:13px;">Sin datos de competencia por ahora.</p>'}
+              </div>
+            </div>
+          </div>
+
+          <div class="disclaimer">
+            Programa válido. Máximo 3 unidades, kg o packs por cliente por día. La comparativa se realiza sobre precios de venta al público vigentes y no incluye precios con tarjeta, programas de beneficios, campañas digitales, cupones, promociones, liquidaciones u otras ofertas temporales. Sujeto a disponibilidad de stock. Si encuentras un mejor precio en un producto participante, agradecemos que lo comuniques al equipo de tienda.
+          </div>
+        `;
+      } catch (err) {
+        contenido.innerHTML = '<div class="estado">Ocurrió un problema al cargar la comparativa. Intenta nuevamente.</div>';
+        console.error(err);
+      }
+    }
+
+    cargarComparativa();
+  </script>
+</body>
+</html>

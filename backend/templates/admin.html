@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Best Price | Panel de Pricing</title>
+<style>
+  :root { --magenta: #C2185B; --gris: #666; --gris-claro: #f2f2f2; }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: 'Segoe UI', Arial, sans-serif;
+    background: #FBF5F7;
+    color: #1F1F1F;
+  }
+  .header {
+    background: var(--magenta);
+    color: #fff;
+    padding: 16px 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .header h1 { font-size: 18px; margin: 0; }
+  .header a { color: #fff; font-size: 13px; text-decoration: underline; }
+  .container { max-width: 900px; margin: 24px auto; padding: 0 16px; }
+  .panel {
+    background: #fff;
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 20px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+  }
+  .panel h2 { font-size: 15px; margin: 0 0 12px; }
+  .panel p.hint { font-size: 12px; color: var(--gris); margin: 0 0 14px; }
+  .msg { background: #E4F3E6; color: #2E7D32; padding: 10px 14px; border-radius: 8px; font-size: 13px; margin-bottom: 16px; }
+  .error { background: #FBE4EC; color: var(--magenta); padding: 10px 14px; border-radius: 8px; font-size: 13px; margin-bottom: 16px; }
+  form.inline { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  input[type="file"] { font-size: 12px; }
+  button, .btn {
+    background: var(--magenta);
+    color: #fff;
+    border: none;
+    padding: 7px 14px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th, td { text-align: left; padding: 8px 6px; border-bottom: 1px solid #eee; vertical-align: middle; }
+  th { font-size: 11px; text-transform: uppercase; color: var(--gris); }
+  .producto-row td { font-weight: 700; background: #FAFAFA; }
+  .thumb { width: 32px; height: 32px; border-radius: 6px; object-fit: cover; background: var(--gris-claro); }
+  .sku-tag { font-size: 11px; color: var(--gris); font-weight: 400; }
+</style>
+</head>
+<body>
+  <div class="header">
+    <h1>Best Price · Panel de Pricing</h1>
+    <a href="/logout">Cerrar sesión</a>
+  </div>
+
+  <div class="container">
+    {% if msg %}<div class="msg">{{ msg }}</div>{% endif %}
+    {% if error %}<div class="error">{{ error }}</div>{% endif %}
+
+    <div class="panel">
+      <h2>1. Cargar Excel con la comparativa</h2>
+      <p class="hint">Sube el archivo con SKU, Producto, Marca, Precio Holi y los datos de cada competidor (Tienda/Precio). Reemplaza toda la comparativa; las fotos ya subidas se conservan automáticamente si el SKU coincide.</p>
+      <form class="inline" action="/admin/excel" method="post" enctype="multipart/form-data">
+        <input type="file" name="archivo" accept=".xlsx" required>
+        <button type="submit">Subir Excel</button>
+      </form>
+    </div>
+
+    <div class="panel">
+      <h2>2. Logo de Holi</h2>
+      <p class="hint">
+        Estado actual:
+        {% if logo_existe %}<strong style="color:#2E7D32;">cargado ✓</strong>{% else %}<strong style="color:#C2185B;">no cargado (se usa el texto "HOLI" por defecto)</strong>{% endif %}
+      </p>
+      <form class="inline" action="/admin/logo" method="post" enctype="multipart/form-data">
+        <input type="file" name="archivo" accept="image/*" required>
+        <button type="submit">Reemplazar logo</button>
+      </form>
+    </div>
+
+    <div class="panel">
+      <h2>3. Fotos de productos y competidores</h2>
+      <p class="hint">Sube la foto de cada producto y de cada competidor. Se actualiza al instante en la página que ve el cliente.</p>
+      <table>
+        <thead>
+          <tr><th>Producto</th><th>Foto</th><th>Subir</th></tr>
+        </thead>
+        <tbody>
+          {% for producto in data.productos %}
+          <tr class="producto-row">
+            <td>{{ producto.nombre }}<br><span class="sku-tag">SKU {{ producto.sku }} · Mi producto</span></td>
+            <td>
+              {% if producto.imagen %}<img class="thumb" src="/{{ producto.imagen }}" alt="">{% else %}<span class="sku-tag">sin foto</span>{% endif %}
+            </td>
+            <td>
+              <form class="inline" action="/admin/imagen-producto" method="post" enctype="multipart/form-data">
+                <input type="hidden" name="sku" value="{{ producto.sku }}">
+                <input type="file" name="archivo" accept="image/*" required>
+                <button type="submit">Subir</button>
+              </form>
+            </td>
+          </tr>
+          {% for competidor in producto.competidores %}
+          <tr>
+            <td style="padding-left:20px;">{{ competidor.tienda }}<br><span class="sku-tag">{{ competidor.producto }}</span></td>
+            <td>
+              {% if competidor.imagen %}<img class="thumb" src="/{{ competidor.imagen }}" alt="">{% else %}<span class="sku-tag">sin foto</span>{% endif %}
+            </td>
+            <td>
+              <form class="inline" action="/admin/imagen-competidor" method="post" enctype="multipart/form-data">
+                <input type="hidden" name="sku" value="{{ producto.sku }}">
+                <input type="hidden" name="indice" value="{{ loop.index0 }}">
+                <input type="file" name="archivo" accept="image/*" required>
+                <button type="submit">Subir</button>
+              </form>
+            </td>
+          </tr>
+          {% endfor %}
+          {% else %}
+          <tr><td colspan="3">Todavía no hay productos cargados. Sube un Excel primero.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <div class="panel">
+      <h2>Vista previa</h2>
+      <p class="hint">Así se ve la página que abre el cliente al escanear el QR.</p>
+      {% for producto in data.productos %}
+        <a class="btn" style="margin:0 6px 6px 0;display:inline-block;" href="/comparativa.html?sku={{ producto.sku }}" target="_blank">Ver {{ producto.nombre }}</a>
+      {% endfor %}
+    </div>
+  </div>
+</body>
+</html>
