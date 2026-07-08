@@ -134,6 +134,20 @@
     </div>
 
     <div class="panel">
+      <h2>5. Textos de la página</h2>
+      <p class="hint">Edita el texto legal y el pie de página que se muestran al cliente. Se aplican a todos los productos.</p>
+      <form action="/admin/textos" method="post">
+        <label style="display:block;font-size:12px;font-weight:700;margin-bottom:4px;">Términos y condiciones</label>
+        <textarea name="terminos" rows="5" style="width:100%;font-family:inherit;font-size:13px;padding:8px;border:1px solid #ddd;border-radius:8px;box-sizing:border-box;margin-bottom:14px;">{{ data.terminos }}</textarea>
+
+        <label style="display:block;font-size:12px;font-weight:700;margin-bottom:4px;">Texto del pie de página</label>
+        <input type="text" name="footer" value="{{ data.footer }}" style="width:100%;font-family:inherit;font-size:13px;padding:8px;border:1px solid #ddd;border-radius:8px;box-sizing:border-box;margin-bottom:14px;">
+
+        <button type="submit">Guardar textos</button>
+      </form>
+    </div>
+
+    <div class="panel">
       <h2>Vista previa</h2>
       <p class="hint">Así se ve la página que abre el cliente al escanear el QR.</p>
       {% for producto in data.productos %}

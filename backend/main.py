@@ -43,6 +43,17 @@ MESES_ES = [
 ]
 RE_TIENDA = re.compile(r"^Tienda (\d+)$")
 
+TERMINOS_DEFAULT = (
+    "Programa válido. Máximo 3 unidades, kg o packs por cliente por día. "
+    "La comparativa se realiza sobre precios de venta al público vigentes y "
+    "no incluye precios con tarjeta, programas de beneficios, campañas "
+    "digitales, cupones, promociones, liquidaciones u otras ofertas "
+    "temporales. Sujeto a disponibilidad de stock. Si encuentras un mejor "
+    "precio en un producto participante, agradecemos que lo comuniques al "
+    "equipo de tienda."
+)
+FOOTER_DEFAULT = "HOLI · Mejor precio, siempre"
+
 app = FastAPI(title="Best Price - Panel de Pricing")
 app.add_middleware(SessionMiddleware, secret_key=SECRET_KEY)
 templates = Jinja2Templates(directory=str(BASE_DIR / "templates"))
@@ -95,10 +106,14 @@ def logout(request: Request):
 # ---------------------------------------------------------------------------
 
 def cargar_data():
-    if not DATA_JSON_PATH.exists():
-        return {"fecha_comparativa": "", "productos": []}
     import json
-    return json.loads(DATA_JSON_PATH.read_text(encoding="utf-8"))
+    if not DATA_JSON_PATH.exists():
+        data = {"fecha_comparativa": "", "productos": []}
+    else:
+        data = json.loads(DATA_JSON_PATH.read_text(encoding="utf-8"))
+    data.setdefault("terminos", TERMINOS_DEFAULT)
+    data.setdefault("footer", FOOTER_DEFAULT)
+    return data
 
 
 def guardar_data(data):
@@ -110,7 +125,12 @@ def fmt_fecha(valor):
     if valor in (None, ""):
         return None
     if isinstance(valor, datetime):
-        return f"{MESES_ES[valor.month - 1].capitalize()} {valor.day}, {valor.year}"
+        hora_12 = valor.hour % 12 or 12
+        periodo = "a.m." if valor.hour < 12 else "p.m."
+        return (
+            f"{MESES_ES[valor.month - 1].capitalize()} {valor.day}, {valor.year}"
+            f" - {hora_12}:{valor.minute:02d} {periodo}"
+        )
     return str(valor).strip()
 
 
@@ -208,7 +228,12 @@ async def admin_subir_excel(request: Request, archivo: UploadFile = File(...), _
         fecha_general, productos_nuevos = parsear_excel(contenido)
         data_anterior = cargar_data()
         productos_nuevos = fusionar_imagenes(productos_nuevos, data_anterior)
-        guardar_data({"fecha_comparativa": fecha_general, "productos": productos_nuevos})
+        guardar_data({
+            "fecha_comparativa": fecha_general,
+            "productos": productos_nuevos,
+            "terminos": data_anterior.get("terminos", TERMINOS_DEFAULT),
+            "footer": data_anterior.get("footer", FOOTER_DEFAULT),
+        })
         msg = quote(f"Excel cargado: {len(productos_nuevos)} producto(s) actualizados.")
         return RedirectResponse(f"/admin?msg={msg}", status_code=303)
     except Exception as exc:
@@ -288,6 +313,20 @@ async def admin_subir_logo(request: Request, archivo: UploadFile = File(...), _=
     destino = LOGOS_DIR / "holi-logo.png"
     destino.write_bytes(await archivo.read())
     return RedirectResponse(f"/admin?msg={quote('Logo de Holi actualizado.')}", status_code=303)
+
+
+@app.post("/admin/textos")
+async def admin_guardar_textos(
+    request: Request,
+    terminos: str = Form(...),
+    footer: str = Form(...),
+    _=Depends(require_login),
+):
+    data = cargar_data()
+    data["terminos"] = terminos.strip() or TERMINOS_DEFAULT
+    data["footer"] = footer.strip() or FOOTER_DEFAULT
+    guardar_data(data)
+    return RedirectResponse(f"/admin?msg={quote('Textos actualizados.')}", status_code=303)
 
 
 @app.get("/admin/qr.zip")

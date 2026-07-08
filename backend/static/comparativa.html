@@ -265,9 +265,12 @@
     </div>
   </div>
 
-  <div class="footer">HOLI · Mejor precio, siempre</div>
+  <div class="footer" id="footer">HOLI · Mejor precio, siempre</div>
 
   <script>
+    const TERMINOS_FALLBACK = 'Programa válido. Máximo 3 unidades, kg o packs por cliente por día. La comparativa se realiza sobre precios de venta al público vigentes y no incluye precios con tarjeta, programas de beneficios, campañas digitales, cupones, promociones, liquidaciones u otras ofertas temporales. Sujeto a disponibilidad de stock. Si encuentras un mejor precio en un producto participante, agradecemos que lo comuniques al equipo de tienda.';
+    const FOOTER_FALLBACK = 'HOLI · Mejor precio, siempre';
+
     const ICONO_PLACEHOLDER = `
       <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
         <rect x="3" y="3" width="18" height="18" rx="2" stroke="currentColor" stroke-width="1.5"/>
@@ -388,9 +391,12 @@
           </div>
 
           <div class="disclaimer">
-            Programa válido. Máximo 3 unidades, kg o packs por cliente por día. La comparativa se realiza sobre precios de venta al público vigentes y no incluye precios con tarjeta, programas de beneficios, campañas digitales, cupones, promociones, liquidaciones u otras ofertas temporales. Sujeto a disponibilidad de stock. Si encuentras un mejor precio en un producto participante, agradecemos que lo comuniques al equipo de tienda.
+            ${datos.terminos || TERMINOS_FALLBACK}
           </div>
         `;
+
+        const footerEl = document.getElementById('footer');
+        if (footerEl) footerEl.textContent = datos.footer || FOOTER_FALLBACK;
       } catch (err) {
         contenido.innerHTML = '<div class="estado">Ocurrió un problema al cargar la comparativa. Intenta nuevamente.</div>';
         console.error(err);

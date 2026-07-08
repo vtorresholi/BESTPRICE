@@ -40,7 +40,12 @@ def fmt_fecha(valor):
     if valor in (None, ""):
         return None
     if isinstance(valor, datetime):
-        return f"{MESES_ES[valor.month - 1].capitalize()} {valor.day}, {valor.year}"
+        hora_12 = valor.hour % 12 or 12
+        periodo = "a.m." if valor.hour < 12 else "p.m."
+        return (
+            f"{MESES_ES[valor.month - 1].capitalize()} {valor.day}, {valor.year}"
+            f" - {hora_12}:{valor.minute:02d} {periodo}"
+        )
     return str(valor).strip()
 
 
