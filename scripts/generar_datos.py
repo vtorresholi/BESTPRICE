@@ -92,9 +92,10 @@ def leer_excel():
             "competidores": competidores,
         })
 
-    # La fecha de la comparativa siempre es la fecha en que se genera el
-    # archivo, no algo que Pricing tenga que llenar en el Excel.
-    fecha_comparativa_general = fmt_fecha(datetime.now())
+    # La fecha de la comparativa es el día en que se genera el archivo, pero
+    # con la hora fija del scrapp (6:00 a.m.), no la hora exacta en que se
+    # sube el Excel.
+    fecha_comparativa_general = fmt_fecha(datetime.now().replace(hour=6, minute=0, second=0, microsecond=0))
 
     return fecha_comparativa_general, productos
 
