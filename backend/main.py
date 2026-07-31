@@ -12,6 +12,7 @@ Permite al equipo de Pricing, sin tocar codigo:
 El resultado (static/data/data.json) alimenta directamente comparativa.html,
 que ya usa el equipo de tienda via el QR impreso.
 """
+import csv
 import io
 import os
 import re
@@ -22,8 +23,8 @@ from urllib.parse import quote
 
 import openpyxl
 import qrcode
-from fastapi import FastAPI, Request, UploadFile, File, Form, Depends
-from fastapi.responses import RedirectResponse, HTMLResponse, StreamingResponse
+from fastapi import FastAPI, Request, UploadFile, File, Form, Depends, Body
+from fastapi.responses import RedirectResponse, HTMLResponse, StreamingResponse, JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from starlette.middleware.sessions import SessionMiddleware
@@ -31,6 +32,7 @@ from starlette.middleware.sessions import SessionMiddleware
 BASE_DIR = Path(__file__).resolve().parent
 STATIC_DIR = BASE_DIR / "static"
 DATA_JSON_PATH = STATIC_DIR / "data" / "data.json"
+VISITAS_JSON_PATH = STATIC_DIR / "data" / "visitas.json"
 IMAGES_DIR = STATIC_DIR / "images"
 LOGOS_DIR = STATIC_DIR / "logos"
 
@@ -44,13 +46,16 @@ MESES_ES = [
 RE_TIENDA = re.compile(r"^Tienda (\d+)$")
 
 TERMINOS_DEFAULT = (
-    "Programa válido. Máximo 3 unidades, kg o packs por cliente por día. "
-    "La comparativa se realiza sobre precios de venta al público vigentes y "
-    "no incluye precios con tarjeta, programas de beneficios, campañas "
-    "digitales, cupones, promociones, liquidaciones u otras ofertas "
-    "temporales. Sujeto a disponibilidad de stock. Si encuentras un mejor "
-    "precio en un producto participante, agradecemos que lo comuniques al "
-    "equipo de tienda."
+    "Campaña válida solo en tiendas físicas de Supermercados Holi S.A.C. en "
+    "base al comparativo diario, con corte a las 6:00 a.m., elaborado con "
+    "los precios online publicados en los canales de venta digital "
+    "oficiales de los supermercados comparados, correspondientes a "
+    "productos seleccionados de la misma marca, presentación, contenido y "
+    "unidad de medida. Para la comparación no se consideran descuentos o "
+    "beneficios sujetos al uso de tarjetas de crédito o débito, programas "
+    "de fidelización, cupones, convenios, códigos promocionales u otros "
+    "mecanismos promocionales condicionados. Compra sujeta al stock de la "
+    "tienda. Consulte el detalle de la metodología escaneando el código QR."
 )
 FOOTER_DEFAULT = "HOLI · Mejor precio, siempre"
 
@@ -187,6 +192,27 @@ def parsear_excel(contenido: bytes):
     # lo carga.
     fecha_general = fmt_fecha(datetime.now().replace(hour=6, minute=0, second=0, microsecond=0))
     return fecha_general, productos
+
+
+def cargar_visitas():
+    import json
+    if not VISITAS_JSON_PATH.exists():
+        return {}
+    return json.loads(VISITAS_JSON_PATH.read_text(encoding="utf-8"))
+
+
+def guardar_visitas(visitas):
+    import json
+    VISITAS_JSON_PATH.parent.mkdir(parents=True, exist_ok=True)
+    VISITAS_JSON_PATH.write_text(json.dumps(visitas, ensure_ascii=False, indent=2), encoding="utf-8")
+
+
+def registrar_visita(sku: str):
+    hoy = datetime.now().strftime("%Y-%m-%d")
+    visitas = cargar_visitas()
+    visitas.setdefault(hoy, {})
+    visitas[hoy][sku] = visitas[hoy].get(sku, 0) + 1
+    guardar_visitas(visitas)
 
 
 def fusionar_imagenes(productos_nuevos, data_anterior):
@@ -355,6 +381,67 @@ def admin_descargar_qr(request: Request, _=Depends(require_login)):
     )
 
 
+@app.get("/admin/visitas", response_class=HTMLResponse)
+def admin_visitas(request: Request, fecha: str = "", _=Depends(require_login)):
+    data = cargar_data()
+    productos_por_sku = {p["sku"]: p for p in data.get("productos", [])}
+    visitas = cargar_visitas()
+
+    fechas_disponibles = sorted(visitas.keys(), reverse=True)
+    fecha_hoy = datetime.now().strftime("%Y-%m-%d")
+    fecha_seleccionada = fecha or (fechas_disponibles[0] if fechas_disponibles else fecha_hoy)
+
+    filas = []
+    for sku, conteo in visitas.get(fecha_seleccionada, {}).items():
+        producto = productos_por_sku.get(sku)
+        filas.append({
+            "sku": sku,
+            "nombre": producto["nombre"] if producto else "(producto ya no está en la comparativa)",
+            "visitas": conteo,
+        })
+    filas.sort(key=lambda f: f["visitas"], reverse=True)
+    total_dia = sum(f["visitas"] for f in filas)
+
+    return templates.TemplateResponse("visitas.html", {
+        "request": request,
+        "filas": filas,
+        "total_dia": total_dia,
+        "fecha_seleccionada": fecha_seleccionada,
+        "fechas_disponibles": fechas_disponibles,
+    })
+
+
+@app.get("/admin/visitas.csv")
+def admin_visitas_csv(request: Request, fecha: str = "", _=Depends(require_login)):
+    data = cargar_data()
+    productos_por_sku = {p["sku"]: p for p in data.get("productos", [])}
+    visitas = cargar_visitas()
+
+    buffer = io.StringIO()
+    buffer.write("﻿")  # BOM para que Excel muestre bien las tildes
+    writer = csv.writer(buffer)
+
+    if fecha:
+        writer.writerow(["Fecha", "SKU", "Producto", "Visitas"])
+        for sku, conteo in sorted(visitas.get(fecha, {}).items(), key=lambda x: -x[1]):
+            nombre = productos_por_sku.get(sku, {}).get("nombre", "")
+            writer.writerow([fecha, sku, nombre, conteo])
+        nombre_archivo = f"visitas_{fecha}.csv"
+    else:
+        writer.writerow(["Fecha", "SKU", "Producto", "Visitas"])
+        for f in sorted(visitas.keys()):
+            for sku, conteo in sorted(visitas[f].items(), key=lambda x: -x[1]):
+                nombre = productos_por_sku.get(sku, {}).get("nombre", "")
+                writer.writerow([f, sku, nombre, conteo])
+        nombre_archivo = "visitas_historico.csv"
+
+    return Response(
+        content=buffer.getvalue(),
+        media_type="text/csv",
+        headers={"Content-Disposition": f"attachment; filename={nombre_archivo}"},
+    )
+
+
 # ---------------------------------------------------------------------------
 # Sitio publico (comparativa.html, data.json, logos, qr, imagenes)
 # ---------------------------------------------------------------------------
@@ -362,6 +449,23 @@ def admin_descargar_qr(request: Request, _=Depends(require_login)):
 @app.get("/")
 def home():
     return RedirectResponse("/comparativa.html")
+
+
+@app.post("/api/visita")
+async def api_registrar_visita(payload: dict = Body(...)):
+    """Llamado por comparativa.html cada vez que un cliente escanea un QR y
+    la pagina carga bien un producto. Publico (sin login): lo dispara el
+    celular del cliente, no el equipo de Pricing."""
+    sku = str(payload.get("sku", "")).strip()
+    if not sku:
+        return JSONResponse({"ok": False}, status_code=400)
+
+    data = cargar_data()
+    if not any(p["sku"] == sku for p in data.get("productos", [])):
+        return JSONResponse({"ok": False}, status_code=404)
+
+    registrar_visita(sku)
+    return JSONResponse({"ok": True})
 
 
 app.mount("/", StaticFiles(directory=str(STATIC_DIR), html=True), name="static")

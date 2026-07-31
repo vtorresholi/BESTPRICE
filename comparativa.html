@@ -298,7 +298,7 @@
   <div class="footer" id="footer">HOLI · Mejor precio, siempre</div>
 
   <script>
-    const TERMINOS_FALLBACK = 'Programa válido. Máximo 3 unidades, kg o packs por cliente por día. La comparativa se realiza sobre precios de venta al público vigentes y no incluye precios con tarjeta, programas de beneficios, campañas digitales, cupones, promociones, liquidaciones u otras ofertas temporales. Sujeto a disponibilidad de stock. Si encuentras un mejor precio en un producto participante, agradecemos que lo comuniques al equipo de tienda.';
+    const TERMINOS_FALLBACK = 'Campaña válida solo en tiendas físicas de Supermercados Holi S.A.C. en base al comparativo diario, con corte a las 6:00 a.m., elaborado con los precios online publicados en los canales de venta digital oficiales de los supermercados comparados, correspondientes a productos seleccionados de la misma marca, presentación, contenido y unidad de medida. Para la comparación no se consideran descuentos o beneficios sujetos al uso de tarjetas de crédito o débito, programas de fidelización, cupones, convenios, códigos promocionales u otros mecanismos promocionales condicionados. Compra sujeta al stock de la tienda. Consulte el detalle de la metodología escaneando el código QR.';
     const FOOTER_FALLBACK = 'HOLI · Mejor precio, siempre';
 
     const ICONO_PLACEHOLDER = `
@@ -427,6 +427,13 @@
 
         const footerEl = document.getElementById('footer');
         if (footerEl) footerEl.textContent = datos.footer || FOOTER_FALLBACK;
+
+        // Registra la visita para el reporte interno de TI/Pricing (no afecta al cliente).
+        fetch('api/visita', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ sku }),
+        }).catch(() => {});
       } catch (err) {
         contenido.innerHTML = '<div class="estado">Ocurrió un problema al cargar la comparativa. Intenta nuevamente.</div>';
         console.error(err);
